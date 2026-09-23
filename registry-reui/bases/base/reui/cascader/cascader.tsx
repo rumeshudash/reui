@@ -405,6 +405,8 @@ export interface CascaderBaseProps<T = unknown> {
   defaultInputValue?: string
   onInputValueChange?: (value: string) => void
 
+  /** How far a query reaches: the level on screen, that level and everything
+   * under it, or the whole tree. Default `"level"`. */
   searchScope?: CascaderSearchScope
   /** Custom matcher, replacing label + keywords substring matching. */
   filter?: (node: CascaderNode<T>, normalizedQuery: string) => boolean
@@ -625,10 +627,10 @@ function useCascaderDevWarnings<T>(options: CascaderDevOptions<T>) {
       )
     }
 
-    if (searchScope === "deep" && mode === "tree") {
+    if (searchScope !== "level" && mode === "tree") {
       warnCascaderOnce(
         "deep-search-in-tree",
-        '`searchScope="deep"` does nothing in `mode="tree"`: a tree query already matches at any depth and auto-expands the ancestors of every hit.'
+        '`searchScope="deep"` and `searchScope="global"` do nothing in `mode="tree"`: a tree query already matches at any depth and auto-expands the ancestors of every hit.'
       )
     }
 
@@ -954,15 +956,23 @@ function Cascader<T>({
   const currentLevelKey = currentParentValue ?? CASCADER_ROOT_KEY
 
   const isDeepSearching =
-    searchScope === "deep" && query.trim().length > 0 && mode !== "tree"
+    searchScope !== "level" && query.trim().length > 0 && mode !== "tree"
+
+  // `"deep"` keeps the scan under the open branch, so the breadcrumb above the
+  // results stays true. `"global"` drops the scope on purpose: in a tree whose
+  // levels are administrative rather than semantic - a country, its regions,
+  // its cities - the user knows the leaf and not the branch it hangs from, and
+  // a query is how they say so. Each hit renders its own ancestor trail, which
+  // is what keeps the wider answer readable.
+  const searchWithin = searchScope === "global" ? null : currentParentValue
 
   const localDeepResults = React.useMemo(() => {
     if (!isDeepSearching) return null
     return searchCascaderDeep(index, query, {
-      within: currentParentValue,
+      within: searchWithin,
       matches: filter,
     })
-  }, [isDeepSearching, index, query, currentParentValue, filter])
+  }, [isDeepSearching, index, query, searchWithin, filter])
 
   // Server search wins over the local scan, or each hit shows up twice.
   const deepResults = loader.searchResults ?? localDeepResults

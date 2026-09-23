@@ -50,7 +50,13 @@ export interface CascaderActionItem {
 /** Panel layout. See the docs for the keyboard map of each. */
 export type CascaderMode = "drill" | "columns" | "tree"
 
-export type CascaderSearchScope = "level" | "deep"
+/**
+ * How far a query reaches.
+ * - `"level"`: the level on screen.
+ * - `"deep"`: that level AND everything under it.
+ * - `"global"`: the whole tree, wherever the panel is standing.
+ */
+export type CascaderSearchScope = "level" | "deep" | "global"
 
 /**
  * Which nodes may be committed. The predicate arm is generic over the payload
